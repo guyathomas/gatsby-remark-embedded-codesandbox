@@ -13,6 +13,15 @@ const DEFAULT_EMBED_OPTIONS = {
 const DEFAULT_GET_IFRAME = url =>
   `<iframe src="${url}" class="embedded-codesandbox" sandbox="allow-modals allow-forms allow-popups allow-scripts allow-same-origin"></iframe>`;
 
+const getAllFiles = dirPath =>
+  fs.readdirSync(dirPath).reduce((acc, file) => {
+    const relativePath = dirPath + '/' + file;
+    const isDirectory = fs.statSync(relativePath).isDirectory();
+    const additions = isDirectory
+      ? getAllFiles(relativePath)
+      : [path.join(__dirname, relativePath)];
+    return [...acc, ...additions];
+  }, []);
 
 module.exports = (
   { markdownAST },
@@ -39,11 +48,11 @@ module.exports = (
 
   const getFilesList = directory => {
     let packageJsonFound = false;
-    const folderFiles = fs.readdirSync(directory);
+    const folderFiles = getAllFiles(directory);
     const sandboxFiles = folderFiles
       // we ignore the package.json file as it will
       // be handled separately
-      .filter(file => file !== 'package.json')
+      .filter(file => !file.includes('package.json'))
       .map(file => {
         const fullFilePath = path.resolve(directory, file);
         const content = fs.readFileSync(fullFilePath, 'utf-8');
@@ -85,14 +94,13 @@ module.exports = (
   };
 
   const getPackageJsonFile = fileList => {
-    const found = fileList.filter(name => name === 'package.json');
-    return found.length > null;
+    return fileList.find(file => file.includes('package.json'));
   };
 
   const createParams = files => {
     const filesObj = files.reduce((prev, current) => {
       // parse package.json first
-      if (current.name === 'package.json') {
+      if (current.name.includes('package.json')) {
         prev[current.name] = { content: JSON.parse(current.content) };
       } else {
         prev[current.name] = { content: current.content };
