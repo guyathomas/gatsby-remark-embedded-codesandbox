@@ -19,8 +19,8 @@
   "license": "MIT",
   "private": false,
   "dependencies": {
+    "codesandbox": "^2.2.1",
     "jest": "^23.1.0",
-    "lz-string": "^1.4.4",
     "query-string": "^6.0.0",
     "unist-util-map": "^1.0.3"
   },

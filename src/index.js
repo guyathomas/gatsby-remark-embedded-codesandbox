@@ -1,9 +1,9 @@
 const fs = require('fs');
 const path = require('path');
-const LZString = require('lz-string');
 const normalizePath = require('normalize-path');
 const map = require('unist-util-map');
 const queryString = require('query-string');
+const { getParameters } = require('codesandbox/lib/api/define');
 
 const DEFAULT_PROTOCOL = 'embedded-codesandbox://';
 const DEFAULT_EMBED_OPTIONS = {
@@ -13,13 +13,6 @@ const DEFAULT_EMBED_OPTIONS = {
 const DEFAULT_GET_IFRAME = url =>
   `<iframe src="${url}" class="embedded-codesandbox" sandbox="allow-modals allow-forms allow-popups allow-scripts allow-same-origin"></iframe>`;
 
-// Matches compression used in Babel and CodeSandbox REPLs
-// https://github.com/babel/website/blob/master/js/repl/UriUtils.js
-const compress = string =>
-  LZString.compressToBase64(string)
-    .replace(/\+/g, `-`) // Convert '+' to '-'
-    .replace(/\//g, `_`) // Convert '/' to '_'
-    .replace(/=+$/, ``); // Remove ending '='
 
 module.exports = (
   { markdownAST },
@@ -110,7 +103,7 @@ module.exports = (
       files: filesObj,
     };
 
-    return compress(JSON.stringify(params));
+    return params;
   };
 
   const getUrlParts = url => {
@@ -139,7 +132,7 @@ module.exports = (
     node.value = embedded;
   };
 
-  map(markdownAST, (node, index, parent) => {
+  map(markdownAST, node => {
     if (node.type === 'link' && node.url.startsWith(protocol)) {
       // split the url in base and query to allow user
       // to customise embedding options on a per-node basis
@@ -149,7 +142,7 @@ module.exports = (
       const dir = getDirectoryPath(url.base);
       const files = getFilesList(dir);
       const params = createParams(files);
-      convertNodeToEmbedded(node, params, url.query);
+      convertNodeToEmbedded(node, getParameters(params), url.query);
     }
 
     return node;
